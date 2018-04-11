@@ -6,7 +6,6 @@ import math
 
 import matplotlib.pyplot as plt
 
-import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
@@ -33,14 +32,14 @@ x_data = np.float32(np.sin(0.75*y_data)*7.0+y_data*0.5+r_data*1.0)
 #show(p)
 
 # plot inline
-plt.figure(figsize=(15,5))
-plt.scatter(x_data[:,0], y_data[:,0])
-plt.show()
+#plt.figure(figsize=(15,5))
+#plt.scatter(x_data[:,0], y_data[:,0])
+#plt.show()
 
 # define net
-class Net(nn.Module):
+class mixnet(nn.Module):
     def __init__(self, input_size, hidden_size, num_distros):
-        super().__init__()
+        super(mixnet, self).__init__()
         self.fc1 = nn.Tanh(nn.Linear(input_size, hidden_size))
         self.fc2 = nn.Linear(hidden_size, num_distros)
 
@@ -63,6 +62,20 @@ class Net(nn.Module):
 
         return out_pi, out_sigma, out_mu
 
-net = Net(1, NHIDDEN, KMIX)
+model = mixnet(1,2,3)
 
-out_pi, out_sigma, out_mu = net.get_mixture_coef()
+# Neural Network Model (1 hidden layer)
+class Net(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, num_classes)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+net = Net(1, 2, 3)
