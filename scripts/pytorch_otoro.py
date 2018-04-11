@@ -27,10 +27,10 @@ r_data = np.float32(np.random.normal(size=(NSAMPLE,1))) # random noise
 x_data = np.float32(np.sin(0.75*y_data)*7.0+y_data*0.5+r_data*1.0)
 
 # output to static HTML file
-output_file("circles.html")
-p = figure(title="data", x_axis_label='x', y_axis_label='y')
-p.circle(x_data[:,0], y_data[:,0], legend="data.", line_width=2)
-show(p)
+#output_file("circles.html")
+#p = figure(title="data", x_axis_label='x', y_axis_label='y')
+#p.circle(x_data[:,0], y_data[:,0], legend="data.", line_width=2)
+#show(p)
 
 # plot inline
 plt.figure(figsize=(15,5))
@@ -38,9 +38,9 @@ plt.scatter(x_data[:,0], y_data[:,0])
 plt.show()
 
 # define net
-class net(nn.Module):
+class Net(nn.Module):
     def __init__(self, input_size, hidden_size, num_distros):
-        super(net, self).__init__()
+        super().__init__()
         self.fc1 = nn.Tanh(nn.Linear(input_size, hidden_size))
         self.fc2 = nn.Linear(hidden_size, num_distros)
 
@@ -49,8 +49,20 @@ class net(nn.Module):
         out = self.fc2(out)
         return out
 
-def get_mixture_coef(output):
-    out_pi, out_sigma, out_mu = np.split(output, 3)
-    return out_pi, out_sigma, out_mu
+    def get_mixture_coef(x):
+        y = forward(x)
+        out_pi, out_sigma, out_mu = np.split(y, 3)
 
-out_pi, out_sigma, out_mu = get_mixture_coef()
+        max_pi = np.amax(out_pi, axis=1, keep_dims=True)
+        out_pi = np.subtract(out_pi, max_pi)
+        out_pi = np.exp(out_pi)
+        normalize_pi = np.reciprocal(np.sum(out_pi, axis=1, keep_dims=True))
+        out_pi = np.multiply(normalize_pi, out_pi)
+
+        out_sigma = np.exp(out_sigma)
+
+        return out_pi, out_sigma, out_mu
+
+net = Net(1, NHIDDEN, KMIX)
+
+out_pi, out_sigma, out_mu = net.get_mixture_coef()
