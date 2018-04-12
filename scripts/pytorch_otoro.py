@@ -37,14 +37,16 @@ x_data = np.float32(np.sin(0.75*y_data)*7.0+y_data*0.5+r_data*1.0)
 #plt.show()
 
 # define net
-class mixnet(nn.Module):
+class Net(nn.Module):
     def __init__(self, input_size, hidden_size, num_distros):
-        super(mixnet, self).__init__()
-        self.fc1 = nn.Tanh(nn.Linear(input_size, hidden_size))
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.tanh = nn.Tanh()
         self.fc2 = nn.Linear(hidden_size, num_distros)
 
     def forward(self, x):
         out = self.fc1(x)
+        out = self.tanh(out)
         out = self.fc2(out)
         return out
 
@@ -62,20 +64,17 @@ class mixnet(nn.Module):
 
         return out_pi, out_sigma, out_mu
 
-model = mixnet(1,2,3)
+model = Net(1, NHIDDEN, KMIX)
 
-# Neural Network Model (1 hidden layer)
-class Net(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size, num_classes)
+def loss_fn(y, out_pi, out_mu, out_sigma):
+    oneDivSqrtTwoPI = 1 / math.sqrt(2*math.pi)
 
-    def forward(self, x):
-        out = self.fc1(x)
-        out = self.relu(out)
-        out = self.fc2(out)
-        return out
+    result = np.subtract(y, out_mu)
+    result = np.multiply(result, np.reciprocal(out_sigma))
+    result = -np.square(result)/2
+    result = np.multiply(np.exp(result),np.reciprocal(out_sigma))*oneDivSqrtTwoPI
 
-net = Net(1, 2, 3)
+    result = np.multiply(result, out_pi)
+    result = np.sum(result, axis=1, keep_dims=True)
+    result = -np.log(result)
+    return np.mean(result)
