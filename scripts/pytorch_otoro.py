@@ -6,10 +6,11 @@ import math
 
 import matplotlib.pyplot as plt
 
+import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from tqdm import tnrange, tqdm_notebook
+from tqdm import trange
 
 from bokeh.plotting import figure, output_file
 from bokeh.io import show
@@ -50,14 +51,14 @@ class Net(nn.Module):
         out = self.fc2(out)
         return out
 
-    def get_mixture_coef(x):
-        y = forward(x)
+    def get_mixture_coef(self, x):
+        y = self.forward(x)
         out_pi, out_sigma, out_mu = np.split(y, 3)
 
-        max_pi = np.amax(out_pi, axis=1, keep_dims=True)
+        max_pi = np.amax(out_pi)
         out_pi = np.subtract(out_pi, max_pi)
         out_pi = np.exp(out_pi)
-        normalize_pi = np.reciprocal(np.sum(out_pi, axis=1, keep_dims=True))
+        normalize_pi = np.reciprocal(np.sum(out_pi, axis=1))
         out_pi = np.multiply(normalize_pi, out_pi)
 
         out_sigma = np.exp(out_sigma)
@@ -75,6 +76,29 @@ def loss_fn(y, out_pi, out_mu, out_sigma):
     result = np.multiply(np.exp(result),np.reciprocal(out_sigma))*oneDivSqrtTwoPI
 
     result = np.multiply(result, out_pi)
-    result = np.sum(result, axis=1, keep_dims=True)
+    result = np.sum(result)
     result = -np.log(result)
     return np.mean(result)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+NEPOCH = 10
+loss_hist = np.zeros(NEPOCH)
+
+for k in range(10):
+    print('xxxxx')
+
+# data
+inpt = Variable(torch.FloatTensor(x_data))
+lbl  = Variable(torch.FloatTensor(y_data))
+
+for i in trange(NEPOCH):
+    # forward
+    optimizer.zero_grad()
+    out_pi, out_sigma, out_mu = model.get_mixture_coef(inpt)
+    loss = loss_fn(lbl, out_pi, out_sigma, out_mu)
+    loss_hist[i] = loss
+
+    # backward
+    loss.backward()
+    optmizer.step()
